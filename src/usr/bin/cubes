@@ -1,0 +1,361 @@
+#!/bin/bash
+
+#Resize the terminal
+resize -s 38 128 > /dev/null 2>&1
+
+#Predefined values ---
+
+#Cubes version
+VERSION="1.5.3"
+
+#Debug mode is enabled. TRUE of FALSE
+DEBUG_MODE="FALSE"
+
+#Config folder location
+CONFIG_FILES_FOLDER="$HOME/.config/Cubes-launcher"
+
+#Server status. On default it's assumed it's offline
+#This is always checked after launch of Cubes
+SERVER_STATUS="OFFLINE"
+
+#Default name of the screen session
+#server ID will be appended at the end (for example: cubes-launcher-screen-session-server1)
+DEFAULT_SCREEN_SESSION_NAME="cubes-launcher-screen-session"
+
+#7-Zip compression strenght
+#On default it's using copy mode (0)
+COMPRESSION_MODE="0"
+
+#Name of backup file for server
+SERVER_BACKUP_FILE_NAME="Server_backup"
+
+#Name of backup file for configuration
+SERVER_CONFIGURATION_BACKUP_FILE_NAME="Server_configuration_backup"
+
+#Should the host machine CPU info be displayed in the main menu?
+#TRUE or FALSE
+SHOW_THE_HOST_MACHINE_CPU_INFO="TRUE"
+
+#For text coloring
+C_GREEN="\e[92m"
+C_BLUE="\e[34m"
+C_CYAN="\e[96m"
+C_RED="\e[91m"
+C_YELLOW="\e[93m"
+C_ESC="\e[0m"
+C_DEFAULT="\e[39m"
+
+C_BLUE_BG="\e[44m"
+
+#If used -v or --version as an argument, it displays version
+if [[ "$1" = "-v" || "$1" = "--version" ]]; then
+	echo "Cubes launcher v$VERSION"
+	exit 0
+fi
+
+#If used -h or --help as an argument, it displays help
+if [[ "$1" = "-h" || "$1" = "--help" ]]; then
+	echo "Cubes launcher v$VERSION - help"
+	echo
+	echo -e "Arguments you can use:"
+	echo -e "   ${C_YELLOW}-v${C_ESC} or ${C_YELLOW}--version${C_ESC} as an argument to check Cubes version"
+	echo -e "   ${C_YELLOW}-h${C_ESC} or ${C_YELLOW}--help${C_ESC} as an argument to display this help page"
+	exit 0
+fi
+
+echo "Loading functions..."
+#Loads the functions
+. "$(dirname "$0")/cubes-functions.sh"
+
+#Loads additional stuff
+. "$(dirname "$0")/cubes-menus.sh"
+
+if [ ! -d "$CONFIG_FILES_FOLDER" ];
+then
+	clear
+	echo "Cubes launcher v$VERSION"
+	echo
+	echo -e "Cubes launcher can't find any ${C_YELLOW}configuration${C_ESC} files!"
+
+	MAKE_EMPTY_CONFIG_FILE_FROM_TEMPLATE server1
+
+	echo -e "An empty configuration file has been placed in ${C_CYAN}$CONFIG_FILES_FOLDER${C_ESC}"
+	echo "Open it and edit with required values"
+	PAUSE "Press [ENTER] to exit"
+	END 0
+fi
+
+# Opens the profile picker
+SERVER_PROFILE_PICKER
+
+# Loads configuration from profile selected with the picker
+echo "Loading configuration..."
+LOAD_CONFIGURATION
+
+# ----------
+
+#Here starts the loop of the main menu
+#To break out of it, use "break"
+while :
+do
+	RESET_WARNINGS
+
+	DISPLAY_SERVER_SIZE=$(CHECK_DIRECTORY_SIZE $SERVER_FOLDER)
+	DISPLAY_BACKUP_SIZE=$(CHECK_DIRECTORY_SIZE $BACKUP_FOLDER)
+	clear
+	echo "Cubes launcher v$VERSION"
+	echo
+
+	CUBES_WELCOME_MESSAGE
+
+	DEBUG_MODE_DISPLAY
+
+	echo
+		if [ -d "$SERVER_FOLDER" ];
+		then
+			echo -e "Server files size: \u2264 $DISPLAY_SERVER_SIZE MB"
+		fi
+
+		if [ -d "$BACKUP_FOLDER" ];
+		then
+			echo -e "Backup files size: \u2264 $DISPLAY_BACKUP_SIZE MB"
+		fi
+
+	echo
+	echo -e "Loaded profile: ${C_CYAN}$SERVER_PROFILE_NAME.profile${C_ESC} [$(READ_PROFILE_ALIAS $SERVER_PROFILE_NAME)]"
+
+#		if [[ "$AUTO_BACKUP_MODE" = "TRUE" ]];
+#		then
+#			echo "Auto-backup mode: on"
+#		else
+#			echo "Auto-backup mode: off"
+#		fi
+
+		if [[ "$SERVER_GUI" = "FALSE" ]]; then
+			echo -e "Server GUI: ${C_CYAN}disabled${C_ESC}"
+
+		elif [[ "$SERVER_GUI" = "TRUE" ]]; then
+			echo -e "Server GUI: ${C_CYAN}enabled${C_ESC}"
+		else
+			echo -e "Server GUI: ${C_RED}Invalid value in the configuration file${C_ESC}"
+		fi
+
+	#Shows warnings if it can't find required server files or config files
+	DISPLAY_WARNINGS
+
+	if [[ "$IMPOSSIBLE_TO_RUN" = "TRUE" ]]; then
+		echo -e "Server state: ${C_RED}unusable${C_ESC}"
+	else
+		echo -e "Server state: ${C_GREEN}usable${C_ESC}"
+	fi
+
+	if [[ "$CUSTOM_JAVA_PATH_ENABLED" = "TRUE" ]]; then
+		echo -e "Custom Java path: ${C_CYAN}$CUSTOM_JAVA_PATH${C_YELLOW}/java${C_ESC}"
+	fi
+
+	# Checks the screen session status and displays it
+	if [ "$(CHECK_SERVER_STATUS $SCREEN_SESSION_NAME)" = "ONLINE" ]; then
+		echo -e "Screen session status: ${C_GREEN}online${C_ESC}  |  Name of the screen session: ${C_CYAN}$SCREEN_SESSION_NAME${C_ESC}"
+		SERVER_STATUS="ONLINE"
+	elif [ "$(CHECK_SERVER_STATUS $SCREEN_SESSION_NAME)" = "OFFLINE" ]; then
+		echo -e "Screen session status: ${C_RED}offline${C_ESC}"
+		SERVER_STATUS="OFFLINE"
+	else
+		echo -e "Screen session status: ${C_RED}Error with CHECK_SERVER_STATUS function!${C_ESC}"
+		SERVER_STATUS="OFFLINE"
+	fi
+
+	#Shows the local IP address
+	echo
+	echo "Server IP (local):   $(GET_LOCAL_IP)"
+	echo "Server port (local): $(READ_FROM_CONFIG_FILE "$SERVER_FOLDER/server.properties" "server-port")"
+
+	echo
+	CALCULATE_AND_DISPLAY_HOST_RAM_USAGE
+
+	if [ "$SHOW_THE_HOST_MACHINE_CPU_INFO" == "TRUE" ]; then
+		echo "Host machine CPU:       $(uname -m) / $(awk -F ': ' '/model name/ {print $2}' /proc/cpuinfo | uniq)"
+	fi
+
+
+#	CHECK_IF_PACKAGE_IS_INSTALLED default-jre
+#	CHECK_IF_PACKAGE_IS_INSTALLED tar
+	CHECK_IF_PACKAGE_IS_INSTALLED p7zip-full
+	CHECK_IF_PACKAGE_IS_INSTALLED screen
+	CHECK_IF_PACKAGE_IS_INSTALLED nano
+	echo 
+	echo "========================================"
+	echo "Press [ENTER] to refresh the status"
+	echo 
+	echo "Select an option and press [ENTER]"
+	echo 
+
+	if [[ "$IMPOSSIBLE_TO_RUN" = "TRUE" ]]; then
+		echo "[ ]  - Turn on the server (impossible)"
+	fi
+
+    if [[ ! "$SERVER_STATUS" = "ONLINE" && "$IMPOSSIBLE_TO_RUN" != "TRUE" ]]; then
+	    echo "[1]  - Turn on the server"
+    fi
+
+	if [[ "$SERVER_STATUS" = "ONLINE" ]]; then
+		echo "[S] -  Show the commands menu  |  [S1] - stop the server and the session  |  [S2] - manual save"
+		echo "[E] -  Session manager  |  [E1] - open the screen session here"
+	fi
+    
+	echo
+
+	if [[ "$SERVER_STATUS" = "OFFLINE" && "$IMPOSSIBLE_TO_RUN" != "TRUE"  ]]; then
+		echo "[2]  - Make a backup"
+	else
+		echo "[ ] -  Make a backup (impossible)"
+	fi
+
+	if [[ "$SERVER_STATUS" = "OFFLINE" && "$CANNOT_FIND_SERVER_FOLDER" != "TRUE"  ]]; then
+		echo "[22] - Restore backup"
+	else
+		echo "[ ] -  Restore backup (impossible)"
+	fi
+
+	echo
+	echo "[3]  - Service menu"
+	echo
+
+    if [[ ! "$IMPOSSIBLE_TO_RUN" = "TRUE" ]]; then
+	    echo "[4]  - Display the server world settings"
+	echo
+    fi
+
+	echo "[0]  - Exit  |  [00] - Switch to other profile"
+	echo
+	echo -n "Type the number: "
+	read OPTION1
+
+	#If is possible to run the server and now argument was used, turn it on skipping the menu
+#	if [[ "$1" = "now" ]];
+#	then
+#		OPTION1="1"
+#	else
+#		read OPTION1
+#	fi
+
+	case $OPTION1 in
+		0)
+		  END 0
+		;;
+
+		00)
+		  SERVER_PROFILE_PICKER
+		  echo "Reloading configuration..."
+		  LOAD_CONFIGURATION
+		;;
+
+# For debugging, might get deleted later
+#		"c" | "C")
+#			MAKE_CONFIG_BACKUP
+#			PAUSE "Press [ENTER] to go back to the main menu"
+#		;;
+
+		"s" | "S")
+            if [[ "$SERVER_STATUS" = "ONLINE" ]]; then
+			    SERVER_COMMANDS_MENU
+            fi
+		;;
+
+# Stop the server
+		"s1" | "S1")
+			clear
+			# If the server status is online, it sends stop command and waits 5 seconds.
+			# It's assumed it's gonna get interpreted by the server as a command to stop and save its work
+            if [[ "$SERVER_STATUS" = "ONLINE" ]]; then
+				echo -e "Sending the '${C_YELLOW}stop${C_ESC}' command"
+			    	SEND_COMMAND stop
+				echo "Waiting 5 seconds to let the server save..."
+					sleep 5
+
+					# As long as the screen session is online, it sends the exit command
+					# when it works, the screen session will end its work
+					# In case it doesn't, it waits 2 seconds and tries again, in loop until it works
+					while :
+					do
+						if [ "$(CHECK_SERVER_STATUS $SCREEN_SESSION_NAME)" = "ONLINE" ]; then
+						echo -e "Sending the '${C_YELLOW}exit${C_ESC}' command"
+							SEND_COMMAND exit
+								if [ "$(CHECK_SERVER_STATUS $SCREEN_SESSION_NAME)" = "OFFLINE" ]; then
+									break
+								else
+									echo "Waiting 2 seconds..."
+									echo "If it takes too long you might have to stop the session manually..."
+										sleep 2
+								fi
+						else
+							break
+						fi
+					done
+            fi
+		;;
+
+# Manual save
+		"s2" | "S2")
+            if [[ "$SERVER_STATUS" = "ONLINE" ]]; then
+			    SERVER_COMMANDS_MENU SHORTCUT 1
+            fi
+		;;
+
+		"e" | "E")
+            if [[ "$SERVER_STATUS" = "ONLINE" ]]; then
+			    CUBES_SCREEN_SESSION_MENU
+            fi
+		;;
+
+		"e1" | "E1")
+            if [[ "$SERVER_STATUS" = "ONLINE" ]]; then
+				clear
+				echo "Cubes launcher v$VERSION"
+				echo
+				echo "You're about to see the screen session in this terminal. To exit it safely,"
+				echo "use [CTRL]+[A] - [D]"
+				echo
+				PAUSE "Press [ENTER] to continue"
+				screen -r $SCREEN_SESSION_NAME
+			fi
+		;;
+
+		1)
+			if [[ ! "$SERVER_STATUS" = "ONLINE" && "$IMPOSSIBLE_TO_RUN" = "FALSE" ]]; then
+				START_THE_SERVER
+			fi
+		;;
+
+		2) 
+			if [[ "$SERVER_STATUS" = "OFFLINE" && "$IMPOSSIBLE_TO_RUN" = "FALSE" ]]; then
+				clear
+				MAKE_BACKUP
+				echo 
+				PAUSE "Press [ENTER] to go to the main menu"
+			fi
+		;;
+
+		22)
+			if [[ "$SERVER_STATUS" = "OFFLINE" && "$CANNOT_FIND_SERVER_FOLDER" != "TRUE"  ]]; then
+				RESTORE_BACKUP_MENU
+			fi
+		;;
+
+		3)
+		 	SERVICE_MENU
+		;;
+
+		4) 
+			if [[ "$IMPOSSIBLE_TO_RUN" = "FALSE" ]]; then
+				clear
+				DISPLAY_WORLD_SETTINGS
+				echo
+				PAUSE "Press [ENTER] to go to the main menu"
+			fi
+		;;
+
+		*) echo "Incorrect option"
+		;;
+	esac
+done

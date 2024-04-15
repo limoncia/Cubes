@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Cubes
+Exec=/bin/cubes
+Icon=cubes-icon.png
+Terminal=true
+Type=Application
+Categories=Network;
