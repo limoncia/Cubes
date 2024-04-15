@@ -19,6 +19,7 @@ Cubes depends on:
 
 Note: This is only my side hobby project. It's not professional in any way!
 It's provided 'as is'. I don't take responsibility for any actions of this software!
+
 Dislaimer: THIS IS NOT AN OFFICIAL MINECRAFT PRODUCT. IT IS NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT
 
 
