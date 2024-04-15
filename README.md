@@ -1,4 +1,4 @@
-# Cubes
+# Cubes launcher
 Cubes is wrote entirely in Bash. It's supposed to help you with managing your Minecraft server.
 
 I tested it only on Ubuntu. I provide deb package only, but it should work just fine on other distros.
@@ -22,13 +22,7 @@ It's provided 'as is'. I don't take responsibility for any actions of this softw
 
 
 # Screenshots
-Main menu:
 ![main menu](https://github.com/limoncia/Cubes/blob/main/readme%20screenshots/when%20offline.png)
-
-Main menu (when the server is running):
-
-Server profile picker:
-
-Service menu:
-
-
+![profile picker](https://github.com/limoncia/Cubes/blob/main/readme%20screenshots/profile%20picker.png)
+![main menu when the server is running](https://github.com/limoncia/Cubes/blob/main/readme%20screenshots/when%20online.png)
+![error when something's wrong](https://github.com/limoncia/Cubes/blob/main/readme%20screenshots/in%20case%20of%20an%20error%20it%20wont%20let%20you%20turn%20the%20server%20on.png)
