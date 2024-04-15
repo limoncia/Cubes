@@ -23,6 +23,7 @@ It's provided 'as is'. I don't take responsibility for any actions of this softw
 
 # Screenshots
 Main menu:
+![main menu](https://github.com/limoncia/Cubes/blob/main/readme%20screenshots/when%20offline.png)
 
 Main menu (when the server is running):
 
