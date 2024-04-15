@@ -1,5 +1,5 @@
 # Cubes - a launcher for Minecraft server
-Cubes is wrote entirely in Bash. It's supposed to help you with managing your Minecraft server.
+Cubes is wrote entirely in Bash. It's supposed to help you with managing your Minecraft server(s).
 
 I tested it only on Ubuntu. I provide deb package only, but it should work just fine on other distros.
 
